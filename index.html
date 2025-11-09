@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,9 +20,8 @@
 
         .hero-section {
             height: 100vh;
-            background: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.5)), 
-                    url('https://c4.wallpaperflare.com/wallpaper/106/134/436/iron-man-superhero-digital-art-black-background-wallpaper-preview.jpg') 
-                    center/cover no-repeat;
+            background: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.5)),
+                url('https://c4.wallpaperflare.com/wallpaper/106/134/436/iron-man-superhero-digital-art-black-background-wallpaper-preview.jpg') center/cover no-repeat;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -121,10 +121,24 @@
             box-shadow: 0 6px 25px rgba(255, 68, 68, 0.8);
         }
 
-        .key-w { grid-column: 2; }
-        .key-a { grid-column: 1; grid-row: 2; }
-        .key-s { grid-column: 2; grid-row: 2; }
-        .key-d { grid-column: 3; grid-row: 2; }
+        .key-w {
+            grid-column: 2;
+        }
+
+        .key-a {
+            grid-column: 1;
+            grid-row: 2;
+        }
+
+        .key-s {
+            grid-column: 2;
+            grid-row: 2;
+        }
+
+        .key-d {
+            grid-column: 3;
+            grid-row: 2;
+        }
 
         .chat-section {
             margin-bottom: 4rem;
@@ -180,7 +194,7 @@
             box-shadow: 0 4px 15px rgba(255, 215, 0, 0.5);
             box-shadow: 0 8px 30px rgba(255, 68, 68, 0.3);
         }
-        
+
         .mic-button:active {
             transform: scale(0.95);
             background: linear-gradient(145deg, #ff883f, #ff680a);
@@ -247,6 +261,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="hero-section">
         <div class="logo">IRONBOT</div>
@@ -280,9 +295,15 @@
         <div class="container">
             <h2 class="section-title">About The Project</h2>
             <div class="about-content">
-                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
-                <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-                <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.</p>
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore
+                    et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
+                    aliquip ex ea commodo consequat.</p>
+                <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
+                    pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit
+                    anim id est laborum.</p>
+                <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium,
+                    totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae
+                    dicta sunt explicabo.</p>
             </div>
         </div>
     </div>
@@ -297,9 +318,19 @@
             space: document.querySelector('.mic-button')
         };
 
+        const BACKEND_API = "...";
+        const moveMap = {
+            w: 'forward',
+            s: 'backward',
+            d: 'right',
+            a: 'left',
+        };
+
         function handleKeyPress(key) {
-            console.log("uwu")
-            console.log(key);
+            const url = `${BACKEND_API}/${moveMap[key]}`;
+            fetch(url)
+                .then(response => console.log(response.status))
+                .catch(err => console.error('Move request error', err));
         }
 
         // Click handlers for WASD buttons
@@ -329,11 +360,67 @@
             key = key === " " ? 'space' : key;
             if (keys[key]) {
                 keys[key].classList.remove('active');
+                if (key == 'space') stopMic();
             }
         });
 
+        const SpeechRecognition =
+            window.SpeechRecognition || window.webkitSpeechRecognition;
+        const SpeechRecognitionEvent =
+            window.SpeechRecognitionEvent || window.webkitSpeechRecognitionEvent;
+
+        const commandsList = ['forward', 'backward', 'left', 'right', 'stop', 'move forward', 'move backward', 'turn left', 'turn right'];
+        let recognition;
+        let isListening = false;
+
+        function initRecognition() {
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.lang = "en-US";
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
+                console.log(`Heard: ${transcript}`);
+
+                // Check if transcript matches any command
+                const matchedCommand = commandsList.find(cmd => transcript.includes(cmd));
+                if (matchedCommand) {
+                    console.log(`✓ Matched command: ${matchedCommand}`);
+                }
+            };
+
+            recognition.onend = () => {
+                if (isListening) {
+                    recognition.start();
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+            };
+        }
+
         function handleMic() {
-            console.log('microphone');
+            if (!recognition) {
+                initRecognition();
+            }
+            if (!isListening) {
+                isListening = true;
+                recognition.start();
+                micButton.classList.add('active');
+                console.log('Microphone started - listening...');
+            }
+        }
+
+        function stopMic() {
+            isListening = false;
+            setTimeout(()=>{
+                recognition.stop();
+                micButton.classList.remove('active');
+                console.log('Microphone stopped');
+            },30000)
         }
 
         // Microphone functionality
@@ -341,4 +428,5 @@
         micButton.addEventListener('click', handleMic);
     </script>
 </body>
+
 </html>

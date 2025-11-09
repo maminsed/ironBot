@@ -285,7 +285,7 @@
             <div class="chat-section">
                 <h2 class="section-title">Communication Interface</h2>
                 <div class="chat-container">
-                    <button class="mic-button key-space">🎤</button>
+                    <button class="mic-button">🎤</button>
                 </div>
             </div>
         </div>
@@ -336,7 +336,8 @@
         // Click handlers for WASD buttons
         Object.entries(keys).forEach(([key, element]) => {
             element.addEventListener('click', () => {
-                handleKeyPress(key);
+                if (key === 'space') handleMic();
+                else handleKeyPress(key);
             });
         });
 
@@ -372,6 +373,8 @@
         const commandsList = ['forward', 'backward', 'left', 'right', 'stop', 'move forward', 'move backward', 'turn left', 'turn right'];
         let recognition;
         let isListening = false;
+        let isStopping = false;
+        let waitingForResult = false;
 
         function initRecognition() {
             recognition = new SpeechRecognition();
@@ -389,20 +392,46 @@
                 if (matchedCommand) {
                     console.log(`✓ Matched command: ${matchedCommand}`);
                 }
+
+                // If we're waiting for a result before stopping, stop now
+                if (waitingForResult) {
+                    waitingForResult = false;
+                    finishStopping();
+                }
             };
 
             recognition.onend = () => {
-                if (isListening) {
+                if (isListening && !isStopping) {
                     recognition.start();
+                } else if (isStopping) {
+                    // Recognition ended while stopping
+                    finishStopping();
                 }
             };
 
             recognition.onerror = (event) => {
                 console.error('Speech recognition error:', event.error);
+                if (isStopping) {
+                    finishStopping();
+                }
             };
         }
 
+        function finishStopping() {
+            isListening = false;
+            isStopping = false;
+            waitingForResult = false;
+            micButton.classList.remove('active');
+            console.log('Microphone stopped');
+        }
+
         function handleMic() {
+            // Don't start if we're in the process of stopping
+            if (isStopping) {
+                console.log('Still stopping, please wait...');
+                return;
+            }
+
             if (!recognition) {
                 initRecognition();
             }
@@ -415,12 +444,21 @@
         }
 
         function stopMic() {
-            isListening = false;
-            setTimeout(()=>{
-                recognition.stop();
-                micButton.classList.remove('active');
-                console.log('Microphone stopped');
-            },30000)
+            if (!isListening) return;
+
+            isStopping = true;
+            waitingForResult = true;
+            console.log('Stopping microphone - waiting for final result...');
+
+            // Set a timeout as fallback in case no result comes
+            setTimeout(() => {
+                if (waitingForResult) {
+                    console.log('Timeout reached, stopping without result');
+                    waitingForResult = false;
+                    finishStopping();
+                    recognition.stop();
+                }
+            }, 3000); // 3 second timeout
         }
 
         // Microphone functionality

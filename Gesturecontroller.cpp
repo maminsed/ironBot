@@ -120,7 +120,7 @@ void connectWiFi() {
 
   Serial.print("Connecting to AP");
   unsigned long start = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - start < 8000) {
+  while (WiFi.status() != WL_CONNECTED && millis() - start < 10000) {
     Serial.print(".");
     delay(250);
   }
@@ -224,11 +224,11 @@ void loop()
     // Use pitch (ayangle) to decide forward/backward
     if (axangle > ROLL_TILT)
     {
-      command = "backwards";
+      command = "backward";
     }
     else if (axangle < -ROLL_TILT)
     {
-      command = "forwards";
+      command = "forward";
     }
     // If not leaning much forward/backward, use roll (axangle) for spin
 //    else if (ayangle > PITCH_TILT)

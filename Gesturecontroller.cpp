@@ -174,9 +174,9 @@ void setup()
   }
 
   // ---- WiFi setup ----
-  Serial.println("Starting AP...");
-  WiFi.mode(WIFI_AP);
-  WiFi.softAP("IMU_Robot_AP", "12345678"); // SSID + password for your ESP32
+//  Serial.println("Starting AP...");
+//  WiFi.mode(WIFI_AP);
+//  WiFi.softAP("IMU_Robot_AP", "12345678"); // SSID + password for your ESP32
   // IPAddress IP = WiFi.softAPIP();
   // Serial.print("AP IP address: ");
   // Serial.println(IP);  // usually 192.168.4.1
@@ -219,29 +219,29 @@ void loop()
     const float TURN_ON_START = 60.0;
     const float TURN_ON_END = 100.0;
 
-    String command = "STOP";
+    String command = "stop";
 
     // Use pitch (ayangle) to decide forward/backward
     if (axangle > ROLL_TILT)
     {
-      command = "MOVE BACKWARD";
+      command = "backwards";
     }
     else if (axangle < -ROLL_TILT)
     {
-      command = "MOVE FORWARD";
+      command = "forwards";
     }
     // If not leaning much forward/backward, use roll (axangle) for spin
-    else if (ayangle > PITCH_TILT)
-    {
-      command = "SPIN RIGHT";
-    }
-    else if (ayangle < -PITCH_TILT)
-    {
-      command = "SPIN LEFT";
-    }
+//    else if (ayangle > PITCH_TILT)
+//    {
+//      command = "right";
+//    }
+//    else if (ayangle < -PITCH_TILT)
+//    {
+//      command = "left";
+//    }
     else
     {
-      command = "STOP";
+      command = "stop";
     }
 
     // LED shows tilt state (you can also just keep it HIGH if you prefer)
@@ -256,6 +256,10 @@ void loop()
 
     Serial.print("Command: ");
     Serial.println(command);
+    if (command != "stop") {
+      sendCommandGET(command);
+    }
+    
     delay(500);
   }
   delay(20);

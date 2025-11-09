@@ -40,7 +40,7 @@ Voice commands such as “start,” “stop,” or “turn left” offer an addi
 - Achieved consistent wireless communication between devices.
 - Designed a compact, efficient hardware setup using minimal components.
 
-##📚 What we learned
+## 📚 What we learned
 - How to use IoT to build a website for the robot
 - PID tuning to build a two-wheel robot. 
 - Debug network latency on embedded systems.

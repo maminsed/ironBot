@@ -5,12 +5,16 @@
 #include <WebServer.h>
 Adafruit_MPU6050 mpu;
 
-// ---- WiFi: connect to the ESP32 AP that hosts the HTTP server ----
-const char *WIFI_SSID = "IMU_Robot_AP";
-const char *WIFI_PASS = "12345678";
+// Motor driver pins
+#define IN1 27
+#define IN2 26
+#define IN3 33
+#define IN4 32
+#define ENA 25
+#define ENB 14
 
-// Your server runs on the AP device -> its IP is the AP gateway 192.168.4.1 (default) on port 80
-const char *PREFIX_URL = "http://192.168.4.1";
+// LED pin
+#define LED_PIN 2
 
 // PID constants
 float Kp = 25.0;
@@ -186,81 +190,13 @@ void moveBackward(int speed) {
   analogWrite(ENB, rightSpeed);  // Right motor (ENB) - slowed down
 }
 
-void loop()
-{
-  // server.handleClient();
-
-  // ---------- Button: toggle systemOn ----------
-  int reading = digitalRead(buttonPin);
-  if (lastButtonState == HIGH && reading == LOW)
-  {
-    Serial.print("System: "); Serial.println(systemOn ? "ON" : "OFF");
-    systemOn = !systemOn;
-  }
-  lastButtonState = reading;
-  if (systemOn)
-  {
-    // Read IMU
-    mpu.getAcceleration(&ax, &ay, &az);
-    mpu.getRotation(&gx, &gy, &gz);
-
-    axangle = atan2(ay, az) * 180.0 / PI;
-    ayangle = atan2(ax, az) * 180.0 / PI;
-
-    Serial.print("axangle=");
-    Serial.print(axangle);
-    Serial.print("  ayangle=");
-    Serial.println(ayangle);
-
-    const float PITCH_TILT = 15.0; // forward/backward tilt threshold (deg)
-    const float ROLL_TILT = 15.0;  // left/right tilt threshold (deg)
-    const float TURN_ON_START = 60.0;
-    const float TURN_ON_END = 100.0;
-
-    String command = "stop";
-
-    // Use pitch (ayangle) to decide forward/backward
-    if (axangle > ROLL_TILT)
-    {
-      command = "backward";
-    }
-    else if (axangle < -ROLL_TILT)
-    {
-      command = "forward";
-    }
-    // If not leaning much forward/backward, use roll (axangle) for spin
-//    else if (ayangle > PITCH_TILT)
-//    {
-//      command = "right";
-//    }
-//    else if (ayangle < -PITCH_TILT)
-//    {
-//      command = "left";
-//    }
-    else
-    {
-      command = "stop";
-    }
-
-    // LED shows tilt state (you can also just keep it HIGH if you prefer)
-    if (axangle >= TURN_ON_START && axangle <= TURN_ON_END)
-    {
-      digitalWrite(ledPin, HIGH); // ON
-    }
-    else
-    {
-      digitalWrite(ledPin, LOW); // OFF
-    }
-
-    Serial.print("Command: ");
-    Serial.println(command);
-    if (command != "stop") {
-      sendCommandGET(command);
-    }
-    
-    delay(500);
-  }
-  delay(20);
+void stopMotors() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, LOW);
+  analogWrite(ENA, 0);
+  analogWrite(ENB, 0);
 }
 
 float mapFloat(float x, float in_min, float in_max, float out_min, float out_max) {

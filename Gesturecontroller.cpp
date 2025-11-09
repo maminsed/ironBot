@@ -1,6 +1,7 @@
 #include <Wire.h>
 #include <MPU6050.h>
-//#include "BluetoothSerial.h"
+#include <WiFi.h>
+#include <WebServer.h>
 
 MPU6050 mpu(0x68);  // we know 0x68 exists from the scanner
 
@@ -14,7 +15,44 @@ const int buttonPin = 4;
 
 // --- button state for ON/OFF toggle ---
 int  lastButtonState = HIGH;
-bool systemOn        = false;
+bool systemOn        = true;
+
+WebServer server(80);
+
+const char MAIN_page[] PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Robot Control</title>
+</head>
+<body>
+  <h2>Robot Control</h2>
+  <p>
+    <a href="/forward">Forward</a>
+  </p>
+  <p>
+    <a href="/backward">Backward</a>
+  </p>
+</body>
+</html>
+)rawliteral";
+
+// --- HTTP handlers ---
+void handleRoot() {
+  Serial.println("HTTP: got /");
+  server.send(200, "text/html", MAIN_page);
+}
+
+void handleForward() {
+  Serial.println("HTTP command: MOVE FORWARD");
+  server.send(200, "text/plain", "MOVE FORWARD");
+}
+
+void handleBackward() {
+  Serial.println("HTTP command: MOVE BACKWARD");
+  server.send(200, "text/plain", "MOVE BACKWARD");
+}
 
 void setup() {
   Serial.begin(115200);
@@ -48,13 +86,29 @@ void setup() {
   } else {
     Serial.println("MPU6050 connection FAILED (ID mismatch), reading anyway...");
   }
+
+  // ---- WiFi setup ----
+  Serial.println("Starting AP...");
+  WiFi.mode(WIFI_AP);
+  WiFi.softAP("IMU_Robot_AP", "12345678");   // SSID + password for your ESP32
+  IPAddress IP = WiFi.softAPIP();
+  Serial.print("AP IP address: ");
+  Serial.println(IP);  // usually 192.168.4.1
+
+  server.on("/",        handleRoot);
+  server.on("/forward", handleForward);
+  server.on("/backward",handleBackward);
+  server.begin();
+  Serial.println("HTTP server started on port 80");
 }
 
 void loop() {
+  server.handleClient();
+
   // ---------- Button: toggle systemOn ----------
   int reading = digitalRead(buttonPin);
-  Serial.print("Button reading = ");
   if (lastButtonState == HIGH && reading == LOW) {
+    Serial.println("System status changed");
     systemOn = !systemOn;
   }
   lastButtonState = reading;
@@ -73,16 +127,16 @@ void loop() {
 
     const float PITCH_TILT = 15.0;  // forward/backward tilt threshold (deg)
     const float ROLL_TILT  = 15.0;  // left/right tilt threshold (deg)
-    const float TURN_ON_START = -60.0;
-    const float TURN_ON_END   = -90.0;
+    const float TURN_ON_START = 60.0;
+    const float TURN_ON_END   = 100.0;
 
     String command = "STOP";
 
     // Use pitch (ayangle) to decide forward/backward
     if (axangle > ROLL_TILT) {
-      command = "MOVE FORWARD";
-    } else if (axangle < -ROLL_TILT) {
       command = "MOVE BACKWARD";
+    } else if (axangle < -ROLL_TILT) {
+      command = "MOVE FORWARD";
     }
     // If not leaning much forward/backward, use roll (axangle) for spin
     else if (ayangle > PITCH_TILT) {
@@ -94,7 +148,7 @@ void loop() {
     }
 
     // LED shows tilt state (you can also just keep it HIGH if you prefer)
-    if (axangle >= TURN_ON_END && axangle <= TURN_ON_START) {
+    if (axangle >= TURN_ON_START && axangle <= TURN_ON_END) {
       digitalWrite(ledPin, HIGH);   // ON
     } else {
       digitalWrite(ledPin, LOW);    // OFF
@@ -106,3 +160,34 @@ void loop() {
   }
   delay(20);
 }
+
+
+// Script to find available networks. Don't get rid of!
+//#include <WiFi.h>
+//
+//void setup() {
+//  Serial.begin(115200);
+//  delay(1000);
+//
+//  Serial.println("Scanning WiFi networks...");
+//  WiFi.mode(WIFI_STA);
+//  WiFi.disconnect(true, true);
+//  delay(100);
+//
+//  int n = WiFi.scanNetworks();
+//  Serial.println("Scan done.");
+//  if (n == 0) {
+//    Serial.println("No networks found.");
+//  } else {
+//    for (int i = 0; i < n; i++) {
+//      Serial.print(i + 1);
+//      Serial.print(": ");
+//      Serial.print(WiFi.SSID(i));
+//      Serial.print(" (");
+//      Serial.print(WiFi.RSSI(i));
+//      Serial.println(" dBm)");
+//    }
+//  }
+//}
+//
+//void loop() {}

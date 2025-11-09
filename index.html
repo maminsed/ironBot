@@ -73,6 +73,13 @@
             letter-spacing: 0.2em;
         }
 
+        .section-text {
+            margin: 0 auto;
+            width: fit-content;
+            margin-bottom: 2rem;
+            margin-top: -1rem;
+        }
+
         .wasd-container {
             display: flex;
             justify-content: center;
@@ -147,6 +154,7 @@
         .chat-container {
             max-width: 200px;
             margin: 0 auto;
+            width: fit-content;
             /* background: linear-gradient(145deg, #1a1a1a, #0a0a0a); */
             /* border: 2px solid #ff4444; */
             /* border-radius: 15px; */
@@ -284,6 +292,7 @@
 
             <div class="chat-section">
                 <h2 class="section-title">Communication Interface</h2>
+                <p class="section-text">Press Space to start</p>
                 <div class="chat-container">
                     <button class="mic-button">🎤</button>
                 </div>
@@ -370,11 +379,32 @@
         const SpeechRecognitionEvent =
             window.SpeechRecognitionEvent || window.webkitSpeechRecognitionEvent;
 
-        const commandsList = ['forward', 'backward', 'left', 'right', 'stop', 'move forward', 'move backward', 'turn left', 'turn right'];
+        const commandsList = [
+            'forward',
+            'backward',
+            'left',
+            'right',
+            'stop',
+        ]
         let recognition;
         let isListening = false;
         let isStopping = false;
         let waitingForResult = false;
+
+        function updateMicText(payload) {
+            const para = document.querySelector('.section-text');
+            para.textContent = payload
+        }
+
+        function findMatch(transcript) {
+            const textSections = transcript.split(" ")
+            let res = ""
+            for (const text of textSections) {
+                const matchedCommand = commandsList.find(cmd => text.includes(cmd));
+                if (matchedCommand) res = matchedCommand
+            }
+            return res
+        }
 
         function initRecognition() {
             recognition = new SpeechRecognition();
@@ -388,9 +418,10 @@
                 console.log(`Heard: ${transcript}`);
 
                 // Check if transcript matches any command
-                const matchedCommand = commandsList.find(cmd => transcript.includes(cmd));
+                const matchedCommand = findMatch(transcript)
                 if (matchedCommand) {
                     console.log(`✓ Matched command: ${matchedCommand}`);
+                    updateMicText(matchedCommand)
                 }
 
                 // If we're waiting for a result before stopping, stop now
@@ -422,6 +453,7 @@
             isStopping = false;
             waitingForResult = false;
             micButton.classList.remove('active');
+            updateMicText('Press Space to start')
             console.log('Microphone stopped');
         }
 
@@ -438,6 +470,7 @@
             if (!isListening) {
                 isListening = true;
                 recognition.start();
+                updateMicText('Start...')
                 micButton.classList.add('active');
                 console.log('Microphone started - listening...');
             }
